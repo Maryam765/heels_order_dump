@@ -59,11 +59,11 @@ app.get("/sync-orders", async (req, res) => {
       order_number: order.order_number,
       phone: order.phone,
       note: order.note,
-      tags: order?.tags ?? "test",
+      // tags: order?.tags ?? "test",
       customer: order?.customer,
     };
 
-    console.log("tags ", order.tags);
+    // console.log("tags ", order.tags);
 
     try {
       const resp = await service.post("/orders.json", {

@@ -104,44 +104,6 @@ export default class ShopifyService {
   }
   async createOrder(order) {
     const response = await this.post("/orders.json", { order });
-    console.log("@@@", response);
-    return response.data;
-  }
-  async createOrdertest(order) {
-    // console.log("order@@@@@", order.line_items);
-    const maxRetries = 5;
-    let attempts = 0;
-    let success = false;
-    let response;
-
-    while (!success && attempts < maxRetries) {
-      try {
-        response = await this.post("/orders.json", { order });
-
-        success = true;
-      } catch (error) {
-        if (
-          error.response?.status === 429 ||
-          error.response?.data?.errors ===
-            "Exceeded order API rate limit, please try again in a minute. Upgrade to a paid account to remove this limit."
-        ) {
-          console.log("Rate limit exceeded. Retrying in 60 seconds...");
-          await sleep(60000); // Wait for 60 seconds before retrying
-          attempts++;
-        } else {
-          throw error;
-        }
-      }
-    }
-
-    if (!success) {
-      throw new Error(
-        "Failed to create order after multiple attempts due to rate limiting."
-      );
-    }
-
-    await sleep(1000); // pause 1 second after each order creation
-
     return response.data;
   }
 }
