@@ -29,7 +29,7 @@ app.get("/queue-info", async (req, res) => {
 app.get("/sync-orders", async (req, res) => {
   const service = new Service({
     shop_name: "testpython43.myshopify.com",
-    accessToken: "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",
+    accessToken: process.env.ACCESS_TOKEN_TEST,
   });
 
   const orderResp = await service.get("/orders.json?limit=3");

@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config();
 import Queue from "bull";
 import Service from "../../service/index.js";
 import { redisClient } from "../../db/redis/index.js";
@@ -63,11 +65,11 @@ queue.process(CONCURRENT, async (job) => {
   try {
     const axiosService_old = new Service({
       shop_name: "testpython43.myshopify.com",
-      accessToken: "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",
+      accessToken: process.env.ACCESS_TOKEN_TEST,
     });
     const axiosService_new = new Service({
       shop_name: "testpython43.myshopify.com",
-      accessToken: "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",
+      accessToken: process.env.ACCESS_TOKEN_TEST,
     });
 
     // const { orders } = await axiosService_old.getOrders();
