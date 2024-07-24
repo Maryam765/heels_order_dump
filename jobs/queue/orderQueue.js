@@ -1,5 +1,3 @@
-import dotenv from "dotenv";
-dotenv.config();
 import Queue from "bull";
 import Service from "../../service/index.js";
 import { redisClient } from "../../db/redis/index.js";
@@ -65,18 +63,18 @@ queue.process(CONCURRENT, async (job) => {
   try {
     const axiosService_old = new Service({
       shop_name: "testpython43.myshopify.com",
-      accessToken: process.env.ACCESS_TOKEN_TEST,
+      accessToken: "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",
     });
     const axiosService_new = new Service({
       shop_name: "testpython43.myshopify.com",
-      accessToken: process.env.ACCESS_TOKEN_TEST,
+      accessToken: "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",
     });
 
-    // const { orders } = await axiosService_old.getOrders();
-    // console.log("order ??? @@@@@@", orders.length);
+    const { orders } = await axiosService_old.getOrders();
+    console.log("order ??? @@@@@@", orders.length);
 
-    const orderResp = await axiosService_old.get("/orders.json");
-    const orders = orderResp.data.orders;
+    // const orderResp = await axiosService_old.get("/orders.json?limit=3");
+    // const orders = orderResp.data.orders;
 
     let errors = [];
     let success = [];
@@ -102,7 +100,7 @@ queue.process(CONCURRENT, async (job) => {
         order_number: order.order_number,
         phone: order.phone,
         note: order.note,
-        // tags: order?.tags ?? "test",
+        // tags: order?.tags ??  "test",
       };
 
       try {
