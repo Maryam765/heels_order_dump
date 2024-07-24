@@ -6,9 +6,6 @@ const QUEUE_NAME = "GET_ORDER_QUEUE";
 const CONCURRENT = 150;
 const JOB_FAIL_RETRIES = 3;
 
-let userCount = 0;
-let userCountByYear = 0;
-
 const options = {
   redis: redisClient,
   removeOnFailure: true,
@@ -103,10 +100,8 @@ queue.process(CONCURRENT, async (job) => {
         order_number: order.order_number,
         phone: order.phone,
         note: order.note,
-        tags: order?.tags ?? "test",
+        // tags: order?.tags ?? "test",
       };
-
-      console.log("tags ", order.tags, order);
 
       try {
         const resp = await axiosService_new.post("/orders.json", {
