@@ -6,7 +6,7 @@ import { paginationWithCallback } from "../../helper/index.js";
 const QUEUE_NAME = "GET_ORDER_QUEUE";
 const CONCURRENT = 150;
 const JOB_FAIL_RETRIES = 3;
-
+let lastProcessedOrderId = null;
 const options = {
   redis: redisClient,
   removeOnFailure: true,
@@ -42,6 +42,11 @@ queue.on("completed", () => {
 
 queue.on("error", (err) => {
   console.log(`${QUEUE_NAME}  JOB ERROR`, err);
+  if (lastProcessedOrderId) {
+    console.log(
+      `Last processed order ID before error: ${lastProcessedOrderId}`
+    );
+  }
 });
 
 queue.on("retrying", ({ data }, err) => {
@@ -54,6 +59,11 @@ queue.on("stalled", () => {
 
 queue.on("failed", async (job, err) => {
   console.log(`${QUEUE_NAME}  JOB FAILED`, err);
+  if (lastProcessedOrderId) {
+    console.log(
+      `Last processed order ID before failure: ${lastProcessedOrderId}`
+    );
+  }
 });
 
 queue.on("job progress", async (details) => {
@@ -128,6 +138,7 @@ queue.process(CONCURRENT, async (job) => {
                 resp.data.order.name
               );
               success.push(order.id);
+              lastProcessedOrderId = order.id;
             } catch (error) {
               errors.push({
                 [order.id]: error?.response?.data?.errors,
@@ -157,6 +168,10 @@ queue.process(CONCURRENT, async (job) => {
     );
   } catch (error) {
     console.log("### Error in Queue ###", error);
-    return;
+    if (lastProcessedOrderId) {
+      console.log(
+        `Last processed order ID before error: ${lastProcessedOrderId}`
+      );
+    }
   }
 });
