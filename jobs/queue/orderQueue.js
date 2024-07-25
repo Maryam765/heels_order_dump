@@ -61,6 +61,11 @@ queue.on("job progress", async (details) => {
 
 queue.process(CONCURRENT, async (job) => {
   try {
+    const service = new Service({
+      shop_name: "maryam-pro.myshopify.com/",
+      accessToken: process.env.ACCESS_TOKEN_MARYAM,
+    });
+
     const axiosService_old = new Service({
       shop_name: "testpython43.myshopify.com",
       accessToken: "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",
@@ -70,54 +75,82 @@ queue.process(CONCURRENT, async (job) => {
       accessToken: "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",
     });
 
-    const { orders } = await axiosService_old.getOrders();
-    console.log("order ??? @@@@@@", orders.length);
+    // const { orders } = await axiosService_old.getOrders();
+    // console.log("order ??? @@@@@@", orders.length);
 
-    // const orderResp = await axiosService_old.get("/orders.json?limit=3");
-    // const orders = orderResp.data.orders;
+    const orderResp = await service.get("/orders.json?limit=10");
+    const orders = orderResp.data.orders;
 
     let errors = [];
     let success = [];
+    const BATCH_SIZE = 3;
+    for (let i = 0; i < orders.length; i += BATCH_SIZE) {
+      const batchOrders = orders.slice(i, i + BATCH_SIZE);
 
-    for (const order of orders) {
-      const newOrderObj = {
-        line_items: order.line_items.map((item) => ({
-          variant_id: item.variant_id,
-          quantity: item.quantity,
-          price: item.price,
-          fulfillable_quantity: item.fulfillable_quantity,
-        })),
-        billing_address: order?.billing_address ?? order.shipping,
-        shipping_address: order.shipping,
-        email: order.email,
-        financial_status: order.financial_status,
-        browser_ip: order.browser_ip,
-        discount_codes: order.discount_codes,
-        fulfillments: order.fulfillments,
-        fulfillment_status: order.fulfillment_status,
-        name: order.name,
-        number: order.number,
-        order_number: order.order_number,
-        phone: order.phone,
-        note: order.note,
-        // tags: order?.tags ??  "test",
-      };
+      for (const order of batchOrders) {
+        const newOrderObj = {
+          line_items: order.line_items.map((item) => ({
+            variant_id: item.variant_id,
+            quantity: item.quantity,
+            price: item.price,
+            fulfillable_quantity: item.fulfillable_quantity,
+          })),
+          billing_address: order?.billing_address ?? order.shipping_address,
+          shipping_address: order.shipping_address,
+          email: order.email,
+          financial_status: order.financial_status,
+          browser_ip: order.browser_ip,
+          discount_codes: order.discount_codes,
+          fulfillments: order.fulfillments,
+          fulfillment_status: order.fulfillment_status,
+          name: order.name,
+          number: order.number,
+          order_number: order.order_number,
+          phone: order.phone,
+          note: order.note,
+          tags: Array.isArray(order.tags) ? order.tags.join(", ") : " ",
+          customer: order.customer,
+          currency: order.currency,
+          shipping_lines: order.shipping_lines,
+          source_name: order.source_name,
+          tax_lines: order.tax_lines,
+          total_discounts: order.total_discounts,
+          total_price: order.total_price,
+          total_tax: order.total_tax,
+          total_weight: order.total_weight,
+          transactions: order.transactions,
+          processed_at: order.processed_at,
+        };
 
-      try {
-        const resp = await axiosService_new.post("/orders.json", {
-          order: newOrderObj,
-        });
-        console.log("SUCCESS: ", resp.data.order.id);
-        success.push(order.id);
-      } catch (error) {
-        errors.push({
-          [order.id]: error?.response?.data?.errors,
-        });
+        try {
+          const resp = await service.post("/orders.json", {
+            order: newOrderObj,
+          });
+          console.log("SUCCESS: ", resp.data.order.id, resp.data.order.name);
+          success.push(order.id);
+        } catch (error) {
+          errors.push({
+            [order.id]: error?.response?.data?.errors,
+          });
+          if (error.response && error.response.status === 429) {
+            const retryAfter = error.response.headers["retry-after"]
+              ? parseInt(error.response.headers["retry-after"], 10) * 1000
+              : 60000;
+            console.log(
+              `Rate limit hit. Waiting for ${retryAfter / 1000} seconds`
+            );
+            await sleep(retryAfter);
+          }
+        }
+
+        await sleep(1000);
       }
 
-      await sleep(13000);
+      console.log(
+        `Processed ${batchOrders.length} orders, waiting before next batch...`
+      );
+      await sleep(60000);
     }
-
     console.log("success: ", success);
     console.log("Errors: ", errors);
   } catch (error) {
