@@ -8,7 +8,8 @@ import {
 } from "../src/jobs/queue/orderQueue.js";
 
 import { paginationWithCallback } from "../src/helper/index.js";
-
+import "../src/db/mongo/index.js";
+import { Order } from "../src/model/order.js";
 dotenv.config();
 
 const app = express();
@@ -30,7 +31,16 @@ app.get("/queue-info", async (req, res) => {
 });
 
 app.get("/sync-orders", async (req, res) => {
-  const service = new Service({
+  let lastProcessedOrderId = null;
+  // const service = new Service({
+  // shop_name: "maryam-pro.myshopify.com/",
+  // accessToken: process.env.ACCESS_TOKEN_MARYAM,
+  // });
+  const axiosService_from = new Service({
+    shop_name: "heelss.myshopify.com/",
+    accessToken: process.env.ACCESS_TOKEN_OLD,
+  });
+  const axiosService_to = new Service({
     shop_name: "maryam-pro.myshopify.com/",
     accessToken: process.env.ACCESS_TOKEN_MARYAM,
   });
@@ -38,7 +48,7 @@ app.get("/sync-orders", async (req, res) => {
   try {
     await paginationWithCallback(
       {
-        service,
+        axiosService_from,
         path: "/orders.json",
       },
       async (orders) => {
@@ -84,7 +94,7 @@ app.get("/sync-orders", async (req, res) => {
             };
 
             try {
-              const resp = await service.post("/orders.json", {
+              const resp = await axiosService_to.post("/orders.json", {
                 order: newOrderObj,
               });
               console.log(
@@ -93,10 +103,24 @@ app.get("/sync-orders", async (req, res) => {
                 resp.data.order.name
               );
               success.push(order.id);
+              lastProcessedOrderId = order.id;
+              const order_id = new Order({
+                order_id: lastProcessedOrderId,
+                status: "Success",
+              });
+
+              await order_id.save();
             } catch (error) {
               errors.push({
                 [order.id]: error?.response?.data?.errors,
               });
+              console.log("FAILED: ", order.id, order.name);
+              lastProcessedOrderId = order.id;
+              const order_id = new Order({
+                order_id: lastProcessedOrderId,
+                status: "Failed",
+              });
+              await order_id.save();
               if (error.response && error.response.status === 429) {
                 const retryAfter = error.response.headers["retry-after"]
                   ? parseInt(error.response.headers["retry-after"], 10) * 1000

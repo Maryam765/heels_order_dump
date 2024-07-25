@@ -3,6 +3,7 @@ import Service from "../../service/index.js";
 import { redisClient } from "../../db/redis/index.js";
 import { sleep } from "../../helper/index.js";
 import { paginationWithCallback } from "../../helper/index.js";
+import { Order } from "../../model/order.js";
 const QUEUE_NAME = "GET_ORDER_QUEUE";
 const CONCURRENT = 150;
 const JOB_FAIL_RETRIES = 3;
@@ -73,17 +74,17 @@ queue.on("job progress", async (details) => {
 queue.process(CONCURRENT, async (job) => {
   try {
     const axiosService_from = new Service({
-      shop_name: "testpython43.myshopify.com",
-      accessToken: "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",
+      shop_name: "heelss.myshopify.com/",
+      accessToken: process.env.ACCESS_TOKEN_OLD,
     });
     const axiosService_to = new Service({
-      shop_name: "testpython43.myshopify.com",
-      accessToken: "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",
+      shop_name: "maryam-pro.myshopify.com/",
+      accessToken: process.env.ACCESS_TOKEN_MARYAM,
     });
 
     await paginationWithCallback(
       {
-        axiosService_from,
+        service: axiosService_from,
         path: "/orders.json",
       },
       async (orders) => {
@@ -133,16 +134,36 @@ queue.process(CONCURRENT, async (job) => {
                 order: newOrderObj,
               });
               console.log(
-                "SUCCESS: ",
+                "SUCCESS:",
+                order,
+                order.line_items.map((item) => item.variant_id),
                 resp.data.order.id,
                 resp.data.order.name
               );
               success.push(order.id);
               lastProcessedOrderId = order.id;
+              const order_id = new Order({
+                order_id: lastProcessedOrderId,
+                status: "Success",
+              });
+              await order_id.save();
             } catch (error) {
               errors.push({
                 [order.id]: error?.response?.data?.errors,
               });
+              console.log(
+                "FAILED: ",
+
+                order.line_items.map((item) => item.variant_id),
+                order.id,
+                order.name
+              );
+              lastProcessedOrderId = order.id;
+              const order_id = new Order({
+                order_id: lastProcessedOrderId,
+                status: "Failed",
+              });
+              await order_id.save();
               if (error.response && error.response.status === 429) {
                 const retryAfter = error.response.headers["retry-after"]
                   ? parseInt(error.response.headers["retry-after"], 10) * 1000

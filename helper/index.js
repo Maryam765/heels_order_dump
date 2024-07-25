@@ -10,6 +10,7 @@ export const sleep = (time = 10000) => {
 
 export async function paginationWithCallback(
   { path, query = null, service, limit = 250 },
+
   cb
 ) {
   return new Promise(async (resolve, reject) => {
