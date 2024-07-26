@@ -1,1 +1,1 @@
-export * from "./order-controller";
+export * as OrderSyncController from "./order-sync-controller";

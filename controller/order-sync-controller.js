@@ -1,41 +1,16 @@
-import express from "express";
 import dotenv from "dotenv";
-import Service from "./service/index.js";
-import { sleep } from "./helper/index.js";
+dotenv.config();
+import { Order } from "../model/order.js";
+import Service from "../service/index.js";
+import {
+  sleep,
+  paginationWithCallback,
+  paginationWithCallbackForProducts,
+} from "../helper/index.js";
 import {
   startOrderSyncQueue,
   getOrderSyncQueueDetails,
-} from "./jobs/queue/orderSyncQueue.js";
-
-import {
-  paginationWithCallback,
-  paginationWithCallbackForProducts,
-} from "../src/helper/index.js";
-import "../src/db/mongo/index.js";
-import { Order } from "../src/model/order.js";
-import OrderSyncRouter from "../src/routes/order-sync--router.js";
-
-dotenv.config();
-
-const app = express();
-const port = 3000;
-
-app.use(express.json());
-
-app.use("/api/", OrderSyncRouter);
-
-app.get("/queue/sync-orders", async (req, res) => {
-  const orderQueue = await startOrderSyncQueue({});
-  return res.status(200).send({
-    orderQueue,
-  });
-});
-app.get("/queue-info", async (req, res) => {
-  const orderQueue = await getOrderSyncQueueDetails();
-  return res.status(200).send({
-    orderQueue,
-  });
-});
+} from "../jobs/queue/orderSyncQueue.js";
 
 const getVariants = async (service) => {
   let variants = [];
@@ -70,8 +45,7 @@ const mapVariants = (sourceVariants, destinationVariants) => {
   });
   return variantMap;
 };
-
-app.get("/sync-orders", async (req, res) => {
+export const syncOrders = async (req, res) => {
   let lastProcessedOrderId = null;
   const sourceService = new Service({
     shop_name: "heelss.myshopify.com/",
@@ -93,7 +67,7 @@ app.get("/sync-orders", async (req, res) => {
         path: "/orders.json",
       },
       async (orders) => {
-        // const orderResp = await sourceService.get("/orders.json?limit=10");
+        // const orderResp = await sourceService.get("/orders.json?limit=1");
         // const orders = orderResp.data.orders;
         let errors = [];
         let success = [];
@@ -203,8 +177,17 @@ app.get("/sync-orders", async (req, res) => {
     console.log(`Error during sync-orders: ${error.message}`);
     return res.status(500).json({ error: error.message });
   }
-});
+};
 
-app.listen(port, () => {
-  console.log(`Server listening on port ${port}`);
-});
+export const syncOrderByQueue = async (req, res) => {
+  const orderSyncQueue = await startOrderSyncQueue({});
+  return res.status(200).send({
+    orderSyncQueue,
+  });
+};
+export const queueInfo = async (req, res) => {
+  const orderSyncQueue = await getOrderSyncQueueDetails({});
+  return res.status(200).send({
+    orderSyncQueue,
+  });
+};
