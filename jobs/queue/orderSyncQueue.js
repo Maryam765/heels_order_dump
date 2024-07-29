@@ -111,12 +111,12 @@ queue.on("job progress", async (details) => {
 queue.process(CONCURRENT, async (job) => {
   let lastProcessedOrderId = null;
   const sourceService = new Service({
-    shop_name: "heelss.myshopify.com/",
+    shop_name: process.env.SHOP_NAME_OLD,
     accessToken: process.env.ACCESS_TOKEN_OLD,
   });
   const destinationService = new Service({
-    shop_name: "maryam-pro.myshopify.com/",
-    accessToken: process.env.ACCESS_TOKEN_MARYAM,
+    shop_name: process.env.SHOP_NAME,
+    accessToken: process.env.ACCESS_TOKEN,
   });
 
   try {
